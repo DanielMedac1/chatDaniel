@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat con Socket.IO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .idPropio {
+            background-color: #d1e7dd;
+            /* Color de fondo para resaltar */
+            font-weight: bold;
+        }
+
+        .mensajePrivado {
+            background-color: #ffecd1;
+            /* Color de fondo para mensajes privados */
+            border-left: 4px solid #ffa500;
+            /* Borde izquierdo para destacar */
+            padding-left: 10px;
+            /* Espaciado adicional para el borde */
+        }
+
+        #container {
+            width: 80%;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        #registro {
+            display: none;
+        }
+
+        #usuariosConectados {
+            list-style: none;
+            padding: 0;
+            background-color: #e9e9e9;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        #usuariosConectados li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #usuariosConectados li:last-child {
+            border-bottom: none;
+        }
+
+        #messages {
+            list-style: none;
+            padding: 0;
+            height: 200px;
+            overflow-y: scroll;
+            background-color: #e9e9e9;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        #messages li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #messages li:last-child {
+            border-bottom: none;
+        }
+
+        #form {
+            display: flex;
+        }
+
+        #form input {
+            padding: 10px;
+            flex: 1;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        #form button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #form button:hover {
+            background-color: #0056b3;
+        }
+
+        .cabecera {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        #acceso {
+            display: none;
+        }
+
+        #acceso-error {
+            opacity: 1;
+            transition: opacity 3s ease-in-out;
+            visibility: hidden;
+        }
+
+        #acceso-error.oculto {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #errordiv.mostrar {
+            color: red;
+            font-weight: bold;
+        }
+
+        #errordiv.oculto {
+            opacity: 0;
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Bienvenida -->
+    <div class="card col-md-4 mx-auto mt-5" id="accesoRegistro">
+        <div class="card-header" id="bienvenido">
+            <h4>Bienvenido</h4>
+        </div>
+        <!-- Opciones de acceder y registrarse -->
+        <span id="accederRegistrarse">
+            <p id="nick-error"></p>
+            <div class="card-body">
+                <form id="formularioAcceso">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Contraseña</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="text" id="nickAcceso" class="form-control"></td>
+                                <td><input type="password" id="passAcceso" class="form-control"></td>
+                                <td colspan="2">
+                                    <button type="submit" class="btn btn-success mt-3" id="acceder">
+                                        <i class="fas fa-sign-in-alt">Acceder</i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+            <br>
+            <div id="errordiv" class="errordiv oculto">
+                <h2>Error al introducir el usuario o la contraseña</h2>
+            </div>
+            <!-- <div class="card col-md-4 mx-auto mt-5 oculto" id="acceso-error">
+                <p id="acceso-nick-error"></p>
+                <div class="card-body">
+                    <h3>Error al introducir el usuario o la contraseña</h3>
+                </div>
+            </div> -->
+
+            <div class="card-header" id="bienvenido">
+                <h4>¿No estás registrado? Hazlo aquí:</h4>
+            </div>
+
+            <button type="submit" class="btn btn-success mt-3" id="registrarse">
+                <i class="fas fa-sign-in-alt"></i> Registrarse
+            </button>
+            <!-- <button id="error">Error</button> -->
+        </span>
+    </div>
+    <!-- Registro -->
+    <div class="card col-md-4 mx-auto mt-5" id="registro">
+        <p id="nick-error"></p>
+        <div class="card-body">
+            <form id="formularioRegistro">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Contraseña</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" id="nick-name" class="form-control"></td>
+                            <td><input type="text" id="pass" class="form-control"></td>
+                            <td colspan="2">
+                                <button type="submit" class="btn btn-success mt-3" id="registrarme">
+                                    <i class="fas fa-sign-in-alt">Registrarme</i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <br>
+                <!-- <button type="submit" class="btn btn-success mt-3" id="atras2">
+                    <b>Atrás</b>
+                </button> -->
+            </form>
+            <button type="submit" class="btn btn-success mt-3" id="atras">
+                <b>Atrás</b>
+            </button>
+        </div>
+    </div>
+
+    <!-- CHAT -->
+    <div id="container">
+        <div class="cabecera">Usuarios Conectados</div>
+        <ul id="usuariosConectados"></ul>
+        <div class="cabecera">Zona de Chat</div>
+        <ul id="messages"></ul>
+        <form id="form">
+            <input id="input" autocomplete="off" placeholder="Escribe un mensaje..." />
+            <input id="destinatario" placeholder="Nombre del destinatario (opcional)" />
+            <button>Enviar</button>
+        </form>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(function () {
+            var socket = io();
+            const formularioAcceso = $('#formularioAcceso');
+            const nickName = $('#nick-name');
+            const nickError = $('#nick-error');
+            const nickAcceso = $('#nickAcceso');
+            const passAcceso = $('#passAcceso');
+
+
+            $(document).ready(function () {
+                $("#registrarse").on("click", function () {
+                    $('#accesoRegistro').hide();
+                    $('#registro').show();
+                });
+            });
+
+            $(document).ready(function () {
+                $("#atras").on("click", function () {
+                    $('#registro').hide();
+                    $('#accesoRegistro').show();
+                });
+            });
+
+
+            $(document).ready(function () {
+                $("#error").on("click", function () {
+                    $('#errordiv').show();
+                });
+            });
+
+
+            $(document).ready(function () {
+                $('#formularioRegistro').submit(function (event) {
+                    event.preventDefault();
+                    const usuario = $('#nick-name').val();
+                    const pass = $('#pass').val();
+                    console.log(usuario + ' ' + pass)
+                    $.ajax({
+                        url: '/registro',
+                        method: 'POST',
+                        data: { usuario: usuario, pass: pass },
+                        success: function (response) {
+                            alert(response); // Muestra la respuesta del servidor (éxito o error)
+                            console.log(response); 
+                        },
+                        error: function (error) {
+                            console.error(error);
+                        }
+                    });
+                    $('#registro').hide();
+                    $('#accesoRegistro').show();
+                })
+
+            });
+
+            formularioAcceso.submit(e => {
+                e.preventDefault();
+                console.log('Enviando...');
+
+                socket.emit('nuevo usuario', { id: socket.id, nombre: nickAcceso.val(), pass: passAcceso.val() }, datos => {
+
+                    console.log(datos);
+
+                    if (datos.mensaje.includes('Error:')) {
+                        // Manejar el caso de usuario o contraseña incorrectos
+                        console.error('Error al intentar acceder.');
+                        // Aquí puedes mostrar un mensaje al usuario informándole del error
+                        mostrarMensajeError();
+                    } else {
+                        // Manejar el caso de acceso exitoso
+                        console.log('Acceso exitoso:', datos.mensaje);
+                        // Aquí puedes realizar las acciones necesarias para un acceso exitoso
+                        $('#container').show();
+                        $('#accesoRegistro').hide();
+                    }
+                });
+            });
+
+            function mostrarMensajeError() {
+                var elemento = $('#errordiv');
+
+                // Mostrar el mensaje de error
+                elemento.removeClass('oculto').addClass('mostrar');
+
+                // Agregar un pequeño retraso antes de ocultar el mensaje
+                setTimeout(function () {
+                    elemento.removeClass('mostrar').addClass('oculto');
+                }, 3000); // 3000 milisegundos = 3 segundos
+            }
+
+            $('form').submit(function (e) {
+                e.preventDefault();
+                var message = $('#input').val();
+                var destinatario = $('#destinatario').val();
+
+                if (destinatario) {
+                    socket.emit('private message', { msg: message, to: destinatario });
+                } else {
+                    socket.emit('chat message', message);
+                }
+
+                $('#input').val('');
+                return false;
+            });
+
+            socket.on('chat message', function (data) {
+                if (data.msg.trim() !== '') { // Verificar si el mensaje no está vacío después de quitar espacios en blanco
+                    var li = $('<li>').text(data.from + ' dice: ' + data.msg);
+                    $('#messages').append(li);
+                }
+            });
+
+
+            socket.on('private message', function (data) {
+                if (data.to === socket.id || data.from === socket.id) {
+                    var li = $('<li>').text(data.nombre + ' (privado) dice: ' + data.msg).addClass('mensajePrivado');
+                    $('#messages').append(li);
+                    console.log("Hola")
+                }
+            });
+
+            socket.on('usuarios conectados', function (usuarios) {
+                $('#usuariosConectados').empty();
+                usuarios.forEach(function (id) {
+                    var li = $('<li>').text(id);
+                    if (usuarios.id === socket.id) { // Comprobar si el ID es del socket actual
+                        li.addClass('idPropio');
+                    }
+                    $('#usuariosConectados').append(li);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
